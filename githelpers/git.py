@@ -52,7 +52,11 @@ class GitRepo:
             print(rs)
 
         # check for any local modifications
-        self._modified = False
+        rs = self.run(["status", "--porcelain"], capture_output=True)
+        if rs.returncode == 0:
+            self._modified = (rs.stdout.strip() != "")
+        else:
+            print(rs)
 
 
 def is_git_repo(dir):
