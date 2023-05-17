@@ -12,6 +12,7 @@ import githelpers
 class Config:
     def __init__(self):
         self._excluded_dirs=[]
+        self._excluded_patterns=[]
         self._subrepos = False
         self._use_status = True
         self._sort = True
@@ -28,21 +29,17 @@ class Config:
         for d in excluded_dirs:
             if os.path.dirname(d) == '':
                 # Just a single dir name, match as pattern
-                self._excluded_dirs.append(d)
+                self._excluded_patterns.append(d)
             else:
                 # seems to be a path, match as absolute path
                 self._excluded_dirs.append( os.path.abspath(d) )
 
-    @property
-    def excluded(self):
-        return self._excluded_dirs
-
-    def is_excluded(self, basedir, dirname):
-        if dirname == ".git":
+    def is_excluded(self, path, dirname):
+        if dir == ".git":
             return True
-        if self._excluded_dirs.count(dirname) > 0:
+        if self._excluded_patterns.count(dirname) > 0:
             return True
-        if self._excluded_dirs.count(os.path.abspath(os.path.join(basedir, dirname))) > 0:
+        if self._excluded_dirs.count(os.path.abspath(os.path.join(path, dirname))) > 0:
             return True
         return False
 
@@ -89,9 +86,43 @@ def find_repositories(dir: str, config: Config):
 
     rootdir=os.path.abspath(dir)
 
+    # first, walk up to see if we are inside a git repository
+    pdir = rootdir
+    while pdir:
+        if githelpers.is_git_repo(pdir):
+            # Found a git repo
+            repos.append( githelpers.GitRepo(pdir) )
+            if not config.subrepos:
+                # If we are not looking for nested git repos, we are done now since we are inside a repo
+                return repos
+        # Go to parent directory
+        d = os.path.dirname(pdir)
+        # Check if we reached the top
+        if d == pdir:
+            break
+        else:
+            pdir = d
 
-
-    githelpers.is_git_repo(rootdir)
+    # Now walk down subdirectories
+    for path, dirs, files in os.walk(rootdir):
+        excluded = []
+        # Check all subdirectories
+        # Note: we already checked the top-level directory above when walking up
+        for d in dirs:
+            subdir = os.path.join(path, d)
+            if config.is_excluded(path, d):
+                # Do not walk down into excluded directories
+                excluded.append(d)
+            # Note: it would be a bit faster to check ".git" in dirs, and add 'path' as repo, but it
+            #       makes the code more ugly and scans more elements when not looking into git repos.
+            elif githelpers.is_git_repo(subdir):
+                # Found a git repo in the sub directories
+                repos.append( githelpers.GitRepo(subdir) )
+                if not config.subrepos:
+                    # Do not look into sub-repos if not enabled
+                    excluded.append(d)
+        for e in excluded:
+            dirs.remove(e)
 
     return repos
 
@@ -132,7 +163,7 @@ def print_repo_status(repo, config: Config):
 
 
 def run_command(repo, command):
-    pass
+    print("Cmd: ", command)
 
 
 def print_summary(repos, config: Config):
@@ -148,14 +179,15 @@ def main():
         description="Execute a git command on multiple repositories"
     )
     parser.add_argument("-d", "--directory", action="append", type=pathlib.Path, default=[],
-                        help="Search in the given directories instead of the current directory.")
+                        help="Search in the given directory instead of the current directory. "
+                             "Can be specified multiple times.")
     parser.add_argument("-e", "--exclude", action="append", type=str, default=[],
-                        help="Specify directories to exclude from the search.")
+                        help="Specify directories to exclude from the search. Can be specified multiple times.")
     parser.add_argument("-u", "--subrepos", action=argparse.BooleanOptionalAction, default=None,
                         help="Search for git repositories within git repositories.")
     parser.add_argument("-s", "--sort", choices=["no", "path", "status"], default=None,
                         help="Sort repositories based on status, list modified repos last.")
-    parser.add_argument("-n", "--status", action=argparse.BooleanOptionalAction, default=None,
+    parser.add_argument("-t", "--status", action=argparse.BooleanOptionalAction, default=None,
                         help="Check and print the status of the repositories (default: True).")
     parser.add_argument("command", metavar="command", type=str, nargs=argparse.REMAINDER)
 
