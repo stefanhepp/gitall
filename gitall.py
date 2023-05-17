@@ -3,6 +3,7 @@
 import os
 import argparse
 import pathlib
+import sys
 
 from colorama import Fore, Style
 
@@ -141,9 +142,9 @@ def print_repo_header(repo, config: Config):
 
     if config.use_status:
         if repo.is_modified:
-            path += " (modified)"
+            path += " (%s: modified)" % repo.branch
         else:
-            path += " (clean)"
+            path += " (%s: clean)" % repo.branch
 
     if config.colored:
         if config.use_status:
@@ -153,24 +154,32 @@ def print_repo_header(repo, config: Config):
                 color = Fore.GREEN
         else:
             color = Style.RESET_ALL
-        print(Fore.CYAN, "==== ", color, path, Fore.CYAN, " ====", Style.RESET_ALL)
+        print(Fore.CYAN + "==== " + color, path, Fore.CYAN + " ====" + Style.RESET_ALL)
     else:
         print("==== ", path, " ====")
 
 
 def print_repo_status(repo, config: Config):
-    pass
+    if not config.use_status or repo.is_modified:
+        # Only run status command if there is anything modified
+        repo.run(["status"])
 
 
 def run_command(repo, command):
-    print("Cmd: ", command)
+    result = repo.run(command)
+    return result.returncode
 
 
-def print_summary(repos, config: Config):
-    modified = sum(1 for repo in repos if repo.is_modified)
-    clean = len(repos) - modified
+def print_summary(repos, errors, config: Config):
+    if config.use_status:
+        modified = sum(1 for repo in repos if repo.is_modified)
+        modified = Fore.RED + str(modified) + Style.RESET_ALL if modified > 0 and config.colored else str(modified)
+    else:
+        modified = "-"
 
-    print("  o) Repositories: %d, Modified: %d, Clean: %d" % (len(repos), modified, clean))
+    errors = Fore.RED + str(errors) + Style.RESET_ALL if errors > 0 and config.colored else str(errors)
+
+    print("  o) Repositories: %d, Modified: %s, Errors: %s" % (len(repos), str(modified), errors))
     print()
 
 
@@ -189,6 +198,8 @@ def main():
                         help="Sort repositories based on status, list modified repos last.")
     parser.add_argument("-t", "--status", action=argparse.BooleanOptionalAction, default=None,
                         help="Check and print the status of the repositories (default: True).")
+    parser.add_argument("-x", "--abort", action=argparse.BooleanOptionalAction, default=False, dest="abort_on_error",
+                        help="Abort on first git command error.")
     parser.add_argument("command", metavar="command", type=str, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
@@ -197,7 +208,6 @@ def main():
     command = args.command
     if len(command)>0 and command[0] == "--":
         command = command[1:]
-    command = ' '.join(command)
 
     # Setup configuration
     config = Config()
@@ -225,22 +235,32 @@ def main():
     # Start printing output
     #just_fix_windows_console()
 
+    errors = 0
+    lasterror = 0
     for repo in repos:
         # Print a header
         print_repo_header(repo, config)
 
         # Print the status or output of the command
-        if command == "":
+        if len(command) == 0:
             print_repo_status(repo, config)
         else:
-            run_command(repo, command)
+            retcode = run_command(repo, command)
+            if retcode != 0:
+               errors += 1
+               lasterror = retcode
+               if args.abort_on_error:
+                   break
 
         print()
 
     # Print a summary of the found repositories
-    if config.use_status:
-        print_summary(repos, config)
+    print_summary(repos, errors, config)
+
+    return lasterror
 
 
+# Run main function
 if __name__ == "__main__":
-    main()
+    retcode = main()
+    sys.exit(retcode)
