@@ -143,6 +143,8 @@ def print_repo_header(repo, config: Config):
     if config.use_status:
         if repo.is_modified:
             path += " (%s: modified)" % repo.branch
+        elif repo.detached:
+            path += " (detached)"
         else:
             path += " (%s: clean)" % repo.branch
 
@@ -150,6 +152,8 @@ def print_repo_header(repo, config: Config):
         if config.use_status:
             if repo.is_modified:
                 color = Fore.RED
+            elif repo.detached:
+                color = Fore.YELLOW
             else:
                 color = Fore.GREEN
         else:
