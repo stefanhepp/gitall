@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import configparser
 import os
 import argparse
 import pathlib
@@ -12,6 +12,7 @@ import githelpers
 
 class Config:
     def __init__(self):
+        self._configname = ".gitall.conf"
         self._excluded_dirs=[]
         self._excluded_patterns=[]
         self._subrepos = False
@@ -21,10 +22,31 @@ class Config:
         self._colored = True
 
     def load(self):
-        pass
+        config_home = os.path.expanduser("~/" + self._configname)
+        if os.path.exists(config_home):
+            self._load_config(config_home)
+        config_local = "./" + self._configname
+        if os.path.exists(config_local):
+            self._load_config(config_local)
 
     def _load_config(self, configfile):
-        pass
+        config = configparser.ConfigParser()
+        config.read(configfile)
+        if "gitall" in config:
+            gitall = config['gitall']
+            # Read config values
+            excluded = gitall.get("excluded", "")
+            sort = gitall.get("sort", "").strip()
+            self._subrepos = gitall.getboolean("subrepos") if "subrepos" in gitall else self._subrepos
+            self._use_status = gitall.getboolean("use-status") if "use-status" in gitall else self._use_status
+            self._colored = gitall.getboolean("colored") if "colored" in gitall else self._colored
+            # Parse config values
+            if sort != "":
+                self._sort = (sort != "no")
+                self._sort_status = (sort == "status")
+            # Not a very safe way of splitting path lists, but better than nothing and good enough for me ..
+            excluded = [ e.strip() for e in excluded.split(",") ]
+            self.exclude(excluded)
 
     def exclude(self, excluded_dirs):
         for d in excluded_dirs:
