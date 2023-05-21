@@ -1,2 +1,2 @@
-from .git import is_git_repo
-from .git import GitRepo
+from .gitrepo import is_git_repo
+from .gitrepo import GitRepo

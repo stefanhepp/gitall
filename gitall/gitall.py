@@ -45,10 +45,10 @@ class Config:
                 self._sort = (sort != "no")
                 self._sort_status = (sort == "status")
             # Not a very safe way of splitting path lists, but better than nothing and good enough for me ..
-            excluded = [ e.strip() for e in excluded.split(",") ]
+            excluded = [ e.strip() for e in excluded.split("\n") ]
             self.exclude(excluded)
 
-    def exclude(self, excluded_dirs):
+    def exclude(self, excluded_dirs: []):
         for d in excluded_dirs:
             if os.path.dirname(d) == '':
                 # Just a single dir name, match as pattern
@@ -57,7 +57,7 @@ class Config:
                 # seems to be a path, match as absolute path
                 self._excluded_dirs.append( os.path.abspath(d) )
 
-    def is_excluded(self, path, dirname):
+    def is_excluded(self, path, dirname: str):
         if dir == ".git":
             return True
         if self._excluded_patterns.count(dirname) > 0:
@@ -75,11 +75,11 @@ class Config:
         return self._sort_status and self._use_status
 
     @sort.setter
-    def sort(self, value):
+    def sort(self, value: bool):
         self._sort = value
 
     @sort_status.setter
-    def sort_status(self, value):
+    def sort_status(self, value: bool):
         self._sort_status = value
 
     @property
@@ -92,7 +92,7 @@ class Config:
         return self._use_status
 
     @use_status.setter
-    def use_status(self, value):
+    def use_status(self, value: bool):
         self._use_status = value
 
     @property
@@ -100,7 +100,7 @@ class Config:
         return self._subrepos
 
     @subrepos.setter
-    def subrepos(self, value):
+    def subrepos(self, value: bool):
         self._subrepos = value
 
 
@@ -185,18 +185,18 @@ def print_repo_header(repo, config: Config):
         print("==== ", path, " ====")
 
 
-def print_repo_status(repo, config: Config):
+def print_repo_status(repo: githelpers.GitRepo, config: Config):
     if not config.use_status or repo.is_modified:
         # Only run status command if there is anything modified
         repo.run(["status"])
 
 
-def run_command(repo, command):
+def run_command(repo: githelpers.GitRepo, command):
     result = repo.run(command)
     return result.returncode
 
 
-def print_summary(repos, errors, config: Config):
+def print_summary(repos: [], errors: int, config: Config):
     if config.use_status:
         modified = sum(1 for repo in repos if repo.is_modified)
         modified = Fore.RED + str(modified) + Style.RESET_ALL if modified > 0 and config.colored else str(modified)
