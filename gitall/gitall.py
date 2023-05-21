@@ -21,15 +21,15 @@ class Config:
         self._sort_status = True
         self._colored = True
 
-    def load(self):
+    def load(self, no_excludes: bool = False):
         config_home = os.path.expanduser("~/" + self._configname)
         if os.path.exists(config_home):
-            self._load_config(config_home)
+            self._load_config(config_home, no_excludes)
         config_local = "./" + self._configname
         if os.path.exists(config_local):
-            self._load_config(config_local)
+            self._load_config(config_local, no_excludes)
 
-    def _load_config(self, configfile):
+    def _load_config(self, configfile, no_excludes: bool):
         config = configparser.ConfigParser()
         config.read(configfile)
         if "gitall" in config:
@@ -44,9 +44,9 @@ class Config:
             if sort != "":
                 self._sort = (sort != "no")
                 self._sort_status = (sort == "status")
-            # Not a very safe way of splitting path lists, but better than nothing and good enough for me ..
-            excluded = [ e.strip() for e in excluded.split("\n") ]
-            self.exclude(excluded)
+            if not no_excludes:
+                excluded = [ e.strip() for e in excluded.split("\n") ]
+                self.exclude(excluded)
 
     def exclude(self, excluded_dirs: []):
         for d in excluded_dirs:
@@ -218,14 +218,17 @@ def main():
                              "Can be specified multiple times.")
     parser.add_argument("-e", "--exclude", action="append", type=str, default=[],
                         help="Specify directories to exclude from the search. Can be specified multiple times.")
+    parser.add_argument("-x", "--ignore-config-excludes", action=argparse.BooleanOptionalAction, default=False,
+                        dest = "ignore_excludes",
+                        help="Ignore exclude paths from config files, ie., only use exclude paths from command line.")
     parser.add_argument("-u", "--subrepos", action=argparse.BooleanOptionalAction, default=None,
-                        help="Search for git repositories within git repositories.")
+                        help="Search for git repositories within git repositories (default: False).")
     parser.add_argument("-s", "--sort", choices=["no", "path", "status"], default=None,
-                        help="Sort repositories based on status, list modified repos last.")
+                        help="Sort repositories based on status, list modified repos last (default: status).")
     parser.add_argument("-t", "--status", action=argparse.BooleanOptionalAction, default=None,
                         help="Check and print the status of the repositories (default: True).")
-    parser.add_argument("-x", "--abort", action=argparse.BooleanOptionalAction, default=False, dest="abort_on_error",
-                        help="Abort on first git command error.")
+    parser.add_argument("-a", "--abort", action=argparse.BooleanOptionalAction, default=False, dest="abort_on_error",
+                        help="Abort on first git command error (default: False).")
     parser.add_argument("command", metavar="command", type=str, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
@@ -238,7 +241,7 @@ def main():
     # Setup configuration
     config = Config()
     # Load config file
-    config.load()
+    config.load(args.ignore_excludes)
     # Override config with commandline args
     config.exclude(args.exclude)
     if args.sort is not None:
