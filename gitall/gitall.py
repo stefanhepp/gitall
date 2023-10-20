@@ -38,7 +38,7 @@ class Config:
             excluded = gitall.get("excluded", "")
             sort = gitall.get("sort", "").strip()
             self._subrepos = gitall.getboolean("subrepos") if "subrepos" in gitall else self._subrepos
-            self._use_status = gitall.getboolean("use-status") if "use-status" in gitall else self._use_status
+            self._use_status = gitall.getboolean("status") if "status" in gitall else self._use_status
             self._colored = gitall.getboolean("colored") if "colored" in gitall else self._colored
             # Parse config values
             if sort != "":

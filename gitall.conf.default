@@ -1,0 +1,15 @@
+[gitall]
+# Sort by default by 'status', by 'path', or 'no' for no sorting.
+sort=status
+# Define a list of paths or folder names to exclude from the search.
+excluded=
+    ignore-this-foldername
+    /home/user/projects/external/repos
+# Enable or disable searching for git repositories within git repositories.
+subrepos=False
+# Enable or disable printing the status for each repository before executing a git command.
+# Disabling the status also disables sorting by status.
+status=True
+# Enable or disable colored output.
+colored=True
+
