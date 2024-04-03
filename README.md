@@ -36,8 +36,8 @@ no changes added to commit (use "git add" and/or "git commit -a")
 
 Either install the pre-built .whl package from my github:
 ```commandline
-wget https://github.com/stefanhepp/gitall/releases/download/gitall-1.0.0/gitall-1.0.0-py3-none-any.whl
-pip install gitall-1.0.0-py3-none-any.whl
+wget https://github.com/stefanhepp/gitall/releases/download/gitall-1.0.0/gitall-1.1.0-py3-none-any.whl
+pip install gitall-1.1.0-py3-none-any.whl
 ```
 Or install from sources (any of the following commands):
 ```commandline

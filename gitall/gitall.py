@@ -9,6 +9,12 @@ from colorama import Fore, Style
 
 import githelpers
 
+try:
+    from ._version import __version__
+except ImportError:
+    # running directly from git, no version
+    __version__ = "not-installed"
+
 
 class Config:
     def __init__(self):
@@ -229,6 +235,7 @@ def main():
                         help="Check and print the status of the repositories (default: True).")
     parser.add_argument("-a", "--abort", action=argparse.BooleanOptionalAction, default=False, dest="abort_on_error",
                         help="Abort on first git command error (default: False).")
+    parser.add_argument("-V", "--version", action="version", version='%(prog)s {version}'.format(version=__version__))
     parser.add_argument("command", metavar="command", type=str, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
